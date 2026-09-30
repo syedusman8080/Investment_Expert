@@ -1,0 +1,2 @@
+# Install a CUDA-enabled or CPU build appropriate for the local Python version/GPU.
+llama-cpp-python
