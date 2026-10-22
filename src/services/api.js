@@ -9,6 +9,8 @@ async function request(path, options = {}) {
 }
 export const login = (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
 export const register = (email, password) => request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+export const getAdminRegistrationStatus = () => request('/auth/admin-registration');
+export const registerFirstAdmin = (email, password) => request('/auth/admin-register', { method: 'POST', body: JSON.stringify({ email, password }) });
 export const listConversations = () => request('/conversations');
 export const createConversation = () => request('/conversations', { method: 'POST' });
 export const getConversation = (id) => request(`/conversations/${id}`);

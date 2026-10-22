@@ -4,8 +4,11 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     app_name: str = "Finance Guru"
     api_prefix: str = "/api"
@@ -17,7 +20,7 @@ class Settings(BaseSettings):
     document_storage_path: str = "fastapi/data/documents"
     llm_context_size: int = 4096
     llm_temperature: float = 0.2
-    llm_max_tokens: int = 512
+    llm_max_tokens: int = 4096
     llm_gpu_layers: int = 0
     retrieval_top_k: int = 5
     chunk_size: int = 1200
@@ -25,7 +28,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./finance_guru.db"
     auth_secret: str = "change-me-in-production"
     access_token_expire_minutes: int = 60 * 24 * 7
-    llm_provider: str = "demo"
+    llm_provider: str = "local"
     llm_api_url: str = "https://api-inference.huggingface.co/v1/chat/completions"
     llm_api_key: str = ""
     llm_api_model: str = "Qwen/Qwen2.5-7B-Instruct"

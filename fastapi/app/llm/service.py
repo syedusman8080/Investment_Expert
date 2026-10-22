@@ -75,11 +75,13 @@ class LLMService:
                         str(model),
                         "--model", str(self.model_path),
                         "--ctx-size", str(self.context_size),
-                        "--n-predict", str(self.max_tokens),
+                        "--n-predict", "-2",
                         "--temperature", str(self.temperature),
                         "--n-gpu-layers", str(self.gpu_layers),
                         "--no-display-prompt",
                         "--no-perf",
+                        "--log-disable",
+                        "--reasoning", "off",
                         "--simple-io",
                         "--single-turn",
                         "--prompt", prompt,
@@ -94,10 +96,18 @@ class LLMService:
                 if result.returncode != 0:
                     raise RuntimeError(result.stderr.strip() or "llama.cpp CLI exited with an error.")
                 answer = result.stdout.strip()
+                if prompt in answer:
+                    answer = answer.rsplit(prompt, 1)[-1].strip()
+                answer = "\n".join(
+                    line for line in answer.splitlines()
+                    if not line.startswith("[ Prompt:") and line.strip() != "Exiting..."
+                ).strip()
             else:
+                prompt_tokens = len(model.tokenize(prompt.encode("utf-8")))
+                available_tokens = max(1, self.context_size - prompt_tokens)
                 result = model(
                     prompt,
-                    max_tokens=self.max_tokens,
+                    max_tokens=min(self.max_tokens, available_tokens),
                     temperature=self.temperature,
                     stop=["<|im_end|>", "</s>"],
                 )

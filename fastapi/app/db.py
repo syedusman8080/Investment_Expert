@@ -23,6 +23,12 @@ class User(Base):
     )
 
 
+class AdminRegistrationClaim(Base):
+    __tablename__ = "admin_registration_claims"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -19,7 +20,7 @@ from app.services.rag_service import RagService
 from app.vectorstore.chroma import ChromaVectorStore
 from app.auth import create_token, get_current_user, hash_password, verify_password
 from app.auth import require_superadmin
-from app.db import Conversation, Message, User, get_db
+from app.db import AdminRegistrationClaim, Conversation, Message, User, get_db
 from app.db import KnowledgeSource
 from app.models.document import TextChunk
 from app.services.knowledge_service import KnowledgeService
@@ -63,6 +64,39 @@ def register(request: AuthRequest, db: Session = Depends(get_db)) -> dict:
     user = User(email=request.email.lower(), password_hash=hash_password(request.password))
     db.add(user)
     db.commit()
+    db.refresh(user)
+    return {"access_token": create_token(user.id), "user": {"id": user.id, "email": user.email, "is_superadmin": user.is_superadmin}}
+
+
+@router.get("/auth/admin-registration")
+def admin_registration_status(db: Session = Depends(get_db)) -> dict:
+    admin_exists = db.scalar(select(User.id).where(User.is_superadmin).limit(1)) is not None
+    claim_exists = db.get(AdminRegistrationClaim, 1) is not None
+    return {"available": not admin_exists and not claim_exists}
+
+
+@router.post("/auth/admin-register", response_model=dict, status_code=status.HTTP_201_CREATED)
+def register_first_admin(request: AuthRequest, db: Session = Depends(get_db)) -> dict:
+    admin_exists = db.scalar(select(User.id).where(User.is_superadmin).limit(1)) is not None
+    if admin_exists or db.get(AdminRegistrationClaim, 1) is not None:
+        raise HTTPException(status_code=409, detail="The first administrator has already been registered.")
+    if db.scalar(select(User.id).where(User.email == request.email.lower())):
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
+    user = User(email=request.email.lower(), password_hash=hash_password(request.password))
+    db.add(user)
+    try:
+        db.flush()
+        db.add(AdminRegistrationClaim(id=1, user_id=user.id))
+        db.flush()
+        user.is_superadmin = True
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if db.scalar(select(User.id).where(User.email == request.email.lower())):
+            raise HTTPException(status_code=409, detail="An account with this email already exists.") from exc
+        raise HTTPException(status_code=409, detail="The first administrator has already been registered.") from exc
+
     db.refresh(user)
     return {"access_token": create_token(user.id), "user": {"id": user.id, "email": user.email, "is_superadmin": user.is_superadmin}}
 

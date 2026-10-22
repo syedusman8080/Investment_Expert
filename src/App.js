@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import {
-  addKnowledgePdf, addKnowledgeText, createConversation, getConversation, listConversations,
-  listKnowledge, login, register, sendMessage,
+  addKnowledgePdf, addKnowledgeText, createConversation, getAdminRegistrationStatus, getConversation,
+  listConversations, listKnowledge, login, register, registerFirstAdmin, sendMessage,
 } from './services/api';
 
 function AdminPanel() {
@@ -35,12 +35,21 @@ function AdminPanel() {
 
 function AuthScreen({ onAuthenticated }) {
   const [mode, setMode] = useState('login');
+  const [adminRegistrationAvailable, setAdminRegistrationAvailable] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  useEffect(() => {
+    getAdminRegistrationStatus().then(({ available }) => setAdminRegistrationAvailable(available));
+  }, []);
   const submit = async (event) => {
     event.preventDefault(); setError('');
-    try { onAuthenticated(mode === 'login' ? await login(email, password) : await register(email, password)); }
+    try {
+      const session = mode === 'login' ? await login(email, password)
+        : mode === 'admin' ? await registerFirstAdmin(email, password)
+          : await register(email, password);
+      onAuthenticated(session);
+    }
     catch (err) { setError(err.message); }
   };
   return <main className="auth-shell"><div className="auth-card">
@@ -49,9 +58,10 @@ function AuthScreen({ onAuthenticated }) {
     {error && <div className="error-banner">{error}</div>}
     <form onSubmit={submit} className="auth-form"><label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       <label>Password<input type="password" minLength="8" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
-      <button className="primary-button">{mode === 'login' ? 'Sign in' : 'Create account'}</button>
+      <button className="primary-button">{mode === 'login' ? 'Sign in' : mode === 'admin' ? 'Create administrator account' : 'Create account'}</button>
     </form>
     <button className="text-button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in'}</button>
+    {adminRegistrationAvailable && <button className="text-button" onClick={() => setMode(mode === 'admin' ? 'login' : 'admin')}>{mode === 'admin' ? 'Back to sign in' : 'Set up the first administrator'}</button>}
   </div></main>;
 }
 

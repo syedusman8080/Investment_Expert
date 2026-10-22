@@ -27,6 +27,14 @@ Beginner-friendly investment education chat with React and FastAPI. Accounts, co
 
 The frontend is available at `http://localhost:3000` and talks to the local FastAPI server at `http://localhost:8000`.
 
+## First administrator and knowledge uploads
+
+When no administrator exists, the sign-in screen offers **Set up the first administrator**. This setup is available once; subsequent accounts use regular registration. You can also bootstrap an administrator with `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD`. Sign in as an administrator to add trusted text or upload PDFs in the knowledge panel. Documents are embedded for retrieval-augmented answers; this does not train or update the model weights.
+
+## Response length
+
+The old default limited generation to 512 tokens. The default `LLM_MAX_TOKENS` is now 4096; local Python llama-cpp generation uses the remaining context after the prompt, and the CLI runs until its context window is full. The context window (`LLM_CONTEXT_SIZE`, 4096 by default) is the practical local maximum, not an unlimited output size. Hosted providers may enforce their own output-token limits.
+
 ## LLM deployment modes
 
 `LLM_PROVIDER=demo` returns a safe explanatory response without an inference model. `LLM_PROVIDER=hosted` calls any OpenAI-compatible endpoint using the server-only `LLM_API_KEY`, which is suitable for Render. `LLM_PROVIDER=local` keeps the existing llama.cpp flow for local development. Do not put an LLM key in a `REACT_APP_*` variable.
